@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌍 Earth History Timeline</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Libre+Franklin:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(170deg, #0a0f0d 0%, #112014 30%, #0d1b12 60%, #0a0a0a 100%);
+    color: #e8e4dc;
+    font-family: 'Libre Franklin', 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 14px 14px 40px;
+    overflow-x: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .header { text-align: center; margin-bottom: 10px; width: 100%; max-width: 720px; }
+  .title {
+    font-size: clamp(18px, 4.5vw, 28px); font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #86efac, #4ade80, #22c55e);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+  .progress { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+  .toggle { display: flex; gap: 3px; margin-bottom: 12px; background: rgba(255,255,255,0.06); border-radius: 11px; padding: 3px; }
+  .tog-on { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .tog-off { background: transparent; color: rgba(255,255,255,0.5); border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+  .event-card {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 12px 14px; display: flex; align-items: center;
+    gap: 10px; backdrop-filter: blur(10px);
+  }
+  .event-emoji { font-size: 28px; line-height: 1; }
+  .event-name { font-size: clamp(13px, 3vw, 17px); font-weight: 700; }
+
+  .earth-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 8px 12px; display: flex; align-items: center;
+    gap: 10px; flex: 0 1 320px;
+  }
+  .era-name { font-size: 12px; font-weight: 700; color: #e8e4dc; }
+  .era-desc { font-size: 10px; color: rgba(255,255,255,0.5); line-height: 1.4; }
+
+  .section { width: 100%; max-width: 720px; margin-bottom: 20px; padding-bottom: 20px; }
+  .labels { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.5); }
+  .track {
+    position: relative; height: 44px; border-radius: 22px; cursor: crosshair;
+    overflow: visible; border: 2px solid rgba(255,255,255,0.15);
+    touch-action: none; user-select: none;
+  }
+  .track-bg { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; opacity: 0.55; }
+  .highlight-box { position: absolute; top: 0; bottom: 0; border-radius: 4px; z-index: 1; pointer-events: none; }
+  .tick-mark { position: absolute; top: 0; bottom: -18px; width: 1px; background: rgba(255,255,255,0.2); z-index: 2; pointer-events: none; }
+  .tick-label { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font-size: 8px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+  .dot {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff;
+    z-index: 3; pointer-events: none;
+  }
+  .err-line {
+    position: absolute; height: 4px; top: 50%; transform: translateY(-50%);
+    background: repeating-linear-gradient(90deg, #f87171 0, #f87171 6px, transparent 6px, transparent 12px);
+    border-radius: 2px; z-index: 4; pointer-events: none;
+  }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 12px; max-width: 720px; width: 100%; justify-content: center; }
+  .num-input {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 9px 12px; color: #e8e4dc; font-size: 14px;
+    font-family: 'JetBrains Mono', monospace; width: 150px; outline: none;
+  }
+  .btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none;
+    border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn2 {
+    background: rgba(255,255,255,0.08); color: #e8e4dc; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+  }
+  .link-btn { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+  .feedback { background: rgba(255,255,255,0.05); border: 2px solid; border-radius: 14px; padding: 14px 18px; max-width: 720px; width: 100%; text-align: center; }
+  .fb-num { font-size: clamp(18px, 4vw, 24px); font-weight: 800; color: #e8e4dc; }
+  .fb-lbl { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .card {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 20px 16px; max-width: 560px; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .big-num {
+    font-size: 48px; font-weight: 900;
+    background: linear-gradient(135deg, #86efac, #22c55e);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .big-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.03); }
+  .row-highlight { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); }
+  .rank { font-weight: 700; color: rgba(255,255,255,0.35); width: 30px; font-size: 11px; text-align: center; }
+
+  .initials-input {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 10px 8px; color: #e8e4dc; font-size: 24px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 800;
+    width: 90px; text-align: center; letter-spacing: 8px;
+    text-transform: uppercase; outline: none;
+  }
+
+  /* Caught overlay */
+  .caught-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    animation: flashBang 0.3s ease-out;
+  }
+  @keyframes flashBang { 0% { background: #fff; } 30% { background: #fff; } 100% { background: #000; } }
+  @keyframes scanLine { 0% { top: 0%; } 100% { top: 100%; } }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .viewfinder {
+    width: 220px; height: 220px; border-radius: 50%; border: 4px solid #f87171;
+    background: radial-gradient(circle, #1a1a2e 0%, #0a0a0a 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 40px rgba(248,113,113,0.4), inset 0 0 30px rgba(248,113,113,0.1);
+  }
+  .scan-line { position: absolute; left: 0; right: 0; height: 2px; background: rgba(248,113,113,0.6); animation: scanLine 2s linear infinite; }
+  .crosshair-h { position: absolute; top: 50%; left: 20px; right: 20px; height: 1px; background: rgba(248,113,113,0.3); }
+  .crosshair-v { position: absolute; left: 50%; top: 20px; bottom: 20px; width: 1px; background: rgba(248,113,113,0.3); }
+  .rec-label { margin-top: 28px; font-size: 13px; color: #f87171; font-weight: 700; animation: blink 1s infinite; letter-spacing: 2px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ============ ALL SCREENS ============ -->
+<div id="app"></div>
+
+<!-- No Firebase needed — leaderboard saves locally. Add Firebase later for shared class leaderboard. -->
+
+<script>
+
+// ===== LEADERBOARD (localStorage — instant, per-device) =====
+async function loadLeaderboard(mode) {
+  try { return JSON.parse(localStorage.getItem("lb_" + mode) || "[]"); } catch { return []; }
+}
+
+async function saveToLeaderboard(mode, entry) {
+  const current = JSON.parse(localStorage.getItem("lb_" + mode) || "[]");
+  current.push(entry);
+  current.sort((a, b) => a.avg - b.avg);
+  const top50 = current.slice(0, 50);
+  localStorage.setItem("lb_" + mode, JSON.stringify(top50));
+  return top50;
+}
+
+async function clearLeaderboard(mode) {
+  localStorage.removeItem("lb_" + mode);
+}
+
+// ===== CONSTANTS =====
+const EARTH_AGE = 4600, UNIVERSE_AGE = 13800, ZOOM1 = 500, ZOOM2 = 3, ROUND_SIZE = 5;
+
+const BLOCKED_WORDS = new Set([
+  "ASS","FUK","FUC","FCK","DIK","DIC","FAG","TIT","CUM","SEX","COK","NIG",
+  "WTF","STD","HOE","FUQ","SUK","SUC","NUT","PEE","POO","BUT","DAM","DMN",
+  "GAY","JEW","KKK","KYS","PUS","RAP","SHT","SLT","SOB","THO","VAG","AZZ",
+]);
+
+const EARTH_EVENTS = [
+  { name: "First Life (single-celled bacteria)", mya: 3800, emoji: "🦠" },
+  { name: "First Photosynthesis (cyanobacteria)", mya: 3400, emoji: "☀️" },
+  { name: "Great Oxidation Event", mya: 2400, emoji: "💨" },
+  { name: "First Eukaryotes (cells with a nucleus)", mya: 2100, emoji: "🔬" },
+  { name: "First Multicellular Life", mya: 1200, emoji: "🧫" },
+  { name: "Cambrian Explosion (complex animals appear)", mya: 541, emoji: "🎆" },
+  { name: "First Fish", mya: 530, emoji: "🐟" },
+  { name: "First Land Plants", mya: 470, emoji: "🌿" },
+  { name: "First Insects", mya: 400, emoji: "🪲" },
+  { name: "First Amphibians", mya: 370, emoji: "🐸" },
+  { name: "First Reptiles", mya: 312, emoji: "🦎" },
+  { name: "Largest Mass Extinction (Permian)", mya: 252, emoji: "💀" },
+  { name: "First Dinosaurs", mya: 230, emoji: "🦕" },
+  { name: "First Mammals", mya: 200, emoji: "🐀" },
+  { name: "First Birds", mya: 150, emoji: "🐦" },
+  { name: "First Flowering Plants", mya: 130, emoji: "🌸" },
+  { name: "Dinosaur Extinction (asteroid impact)", mya: 66, emoji: "☄️" },
+  { name: "First Primates", mya: 55, emoji: "🐒" },
+  { name: "First Hominids", mya: 6, emoji: "🧍" },
+  { name: "Genus Homo Appears (Homo habilis)", mya: 2.8, emoji: "🪨" },
+  { name: "Homo Erectus Leaves Africa", mya: 1.9, emoji: "🚶" },
+  { name: "First Controlled Use of Fire", mya: 1, emoji: "🔥" },
+  { name: "First Homo Sapiens", mya: 0.3, emoji: "🧠" },
+];
+
+const UNIVERSE_EVENTS = [
+  { name: "The Big Bang", mya: 13800, emoji: "💥" },
+  { name: "First Stars Ignite", mya: 13600, emoji: "⭐" },
+  { name: "First Galaxies Form", mya: 13300, emoji: "🌌" },
+  { name: "Milky Way Galaxy Forms", mya: 13000, emoji: "🌀" },
+  { name: "Heavy Elements Forged in Supernovae", mya: 12000, emoji: "✨" },
+  { name: "Our Sun & Solar System Form", mya: 4600, emoji: "🌞" },
+  { name: "The Moon Forms (giant impact)", mya: 4500, emoji: "🌙" },
+  ...EARTH_EVENTS,
+];
+
+const ERAS = [
+  { mya: 4600, name: "Hadean Earth", desc: "Molten rock, no oceans, constant bombardment", ocean: "#1a0500", land: "#ff4400", accent: "#ff8800", type: "molten" },
+  { mya: 4000, name: "Early Oceans Forming", desc: "Surface cooling — first oceans appear", ocean: "#0a1a30", land: "#8b4513", accent: "#ff6633", type: "volcanic_ocean" },
+  { mya: 3500, name: "Archean Ocean World", desc: "Vast oceans, tiny volcanic islands, first bacteria", ocean: "#0c2340", land: "#6b4226", accent: "#4a7c59", type: "ocean_world" },
+  { mya: 2500, name: "Growing Continents", desc: "Small continents forming, oxygen building up", ocean: "#0f2d4a", land: "#7c6842", accent: "#5a8a5e", type: "small_continents" },
+  { mya: 1100, name: "Rodinia (Supercontinent)", desc: "All land joined into one giant supercontinent", ocean: "#0a3055", land: "#a08050", accent: "#8a7040", type: "rodinia" },
+  { mya: 700, name: "Snowball Earth", desc: "Entire planet frozen in ice", ocean: "#b8d4e8", land: "#e8f0f8", accent: "#ffffff", type: "snowball" },
+  { mya: 540, name: "Cambrian World", desc: "Ice melted, life exploding in the seas", ocean: "#0d3b66", land: "#a08855", accent: "#6b8e4e", type: "gondwana" },
+  { mya: 300, name: "Pangaea Forms", desc: "All continents joined: Pangaea", ocean: "#0a3055", land: "#8a7a50", accent: "#5a7a3e", type: "pangaea" },
+  { mya: 200, name: "Pangaea Breaking Up", desc: "The supercontinent rifts apart", ocean: "#0d3b66", land: "#8a7a50", accent: "#3a6ab5", type: "pangaea_rift" },
+  { mya: 100, name: "Continents Separating", desc: "Atlantic widens, dinosaurs rule", ocean: "#0f4577", land: "#7a8a50", accent: "#4a8a3e", type: "separating" },
+  { mya: 0, name: "Modern Earth", desc: "Continents in their familiar positions", ocean: "#0a4d8c", land: "#4a8a3e", accent: "#2d6a2e", type: "modern" },
+];
+
+function getEra(mya) {
+  if (mya === null) return ERAS[ERAS.length - 1];
+  for (let i = 0; i < ERAS.length - 1; i++) {
+    if (mya >= ERAS[i].mya) return ERAS[i];
+    if (mya >= ERAS[i + 1].mya) return ERAS[i + 1];
+  }
+  return ERAS[ERAS.length - 1];
+}
+
+// ===== GLOBE SVG =====
+function globeSVG(era) {
+  const k = era.type;
+  const lands = {
+    molten: `<circle cx="50" cy="55" r="35" fill="#cc2200" opacity="0.8"/><circle cx="90" cy="80" r="28" fill="#dd4400" opacity="0.7"/><circle cx="70" cy="40" r="20" fill="#ff6600" opacity="0.6"/><circle cx="45" cy="90" r="22" fill="#ee3300" opacity="0.7"/>`,
+    volcanic_ocean: `<ellipse cx="45" cy="60" rx="12" ry="10" fill="${era.land}"/><ellipse cx="85" cy="50" rx="8" ry="7" fill="${era.land}"/><ellipse cx="65" cy="85" rx="10" ry="8" fill="${era.land}"/><circle cx="45" cy="55" r="4" fill="${era.accent}" opacity="0.8"/>`,
+    ocean_world: `<ellipse cx="50" cy="65" rx="6" ry="5" fill="${era.land}"/><ellipse cx="80" cy="55" rx="5" ry="4" fill="${era.land}"/><ellipse cx="65" cy="85" rx="4" ry="3" fill="${era.land}"/>`,
+    small_continents: `<ellipse cx="45" cy="60" rx="14" ry="12" fill="${era.land}"/><ellipse cx="85" cy="50" rx="11" ry="10" fill="${era.land}"/><ellipse cx="60" cy="88" rx="12" ry="8" fill="${era.land}"/>`,
+    rodinia: `<ellipse cx="70" cy="68" rx="38" ry="32" fill="${era.land}"/>`,
+    snowball: `<circle cx="70" cy="70" r="60" fill="#d4e8f4"/><ellipse cx="50" cy="60" rx="25" ry="18" fill="#e8f4ff" opacity="0.7"/><ellipse cx="90" cy="75" rx="20" ry="15" fill="#f0f8ff" opacity="0.6"/>`,
+    gondwana: `<ellipse cx="65" cy="85" rx="35" ry="22" fill="${era.land}"/><ellipse cx="40" cy="50" rx="10" ry="8" fill="${era.land}"/>`,
+    pangaea: `<path d="M 50,35 C 40,40 35,55 38,75 C 40,90 55,100 70,95 C 85,90 100,80 105,65 C 108,50 100,40 90,38 C 80,30 60,30 50,35 Z" fill="${era.land}"/>`,
+    pangaea_rift: `<path d="M 45,35 C 35,45 32,60 35,78 C 38,90 48,95 55,92" fill="none" stroke="${era.land}" stroke-width="25" stroke-linecap="round"/><path d="M 80,38 C 90,48 95,60 92,78 C 90,88 82,93 75,90" fill="none" stroke="${era.land}" stroke-width="22" stroke-linecap="round"/>`,
+    separating: `<ellipse cx="40" cy="45" rx="18" ry="22" fill="${era.land}" transform="rotate(-15 40 45)"/><ellipse cx="95" cy="50" rx="14" ry="18" fill="${era.land}" transform="rotate(10 95 50)"/><ellipse cx="55" cy="90" rx="22" ry="12" fill="${era.land}"/>`,
+    modern: `<ellipse cx="38" cy="42" rx="15" ry="20" fill="${era.land}" transform="rotate(-10 38 42)"/><ellipse cx="42" cy="80" rx="12" ry="14" fill="${era.land}" transform="rotate(15 42 80)"/><ellipse cx="88" cy="40" rx="18" ry="16" fill="${era.land}" transform="rotate(5 88 40)"/><ellipse cx="95" cy="68" rx="8" ry="12" fill="${era.land}"/><ellipse cx="75" cy="105" rx="14" ry="8" fill="#e8e8e0"/>`,
+  };
+  return `<svg viewBox="0 0 140 140" width="110" height="110"><defs><radialGradient id="gl" cx="35%" cy="35%"><stop offset="0%" stop-color="rgba(255,255,255,0.25)"/><stop offset="100%" stop-color="rgba(0,0,0,0.3)"/></radialGradient><clipPath id="gc"><circle cx="70" cy="70" r="60"/></clipPath></defs><circle cx="70" cy="70" r="60" fill="${era.ocean}"/><g clip-path="url(#gc)">${lands[k] || ""}</g><circle cx="70" cy="70" r="60" fill="url(#gl)"/><circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/></svg>`;
+}
+
+// ===== UTILITIES =====
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function fmtMya(mya) {
+  if (mya >= 1000) return (mya / 1000).toFixed(2) + " billion";
+  if (mya >= 1) return Math.round(mya) + " million";
+  if (mya >= 0.01) return Math.round(mya * 1000).toLocaleString() + " thousand";
+  return Math.round(mya * 1e6).toLocaleString();
+}
+function fmtShort(mya) {
+  if (mya >= 1000) return (mya / 1000).toFixed(1) + "B";
+  if (mya >= 1) return Math.round(mya) + "M";
+  return Math.round(mya * 1000) + "K";
+}
+function fmtMarker(mya) {
+  if (mya >= 1000) return (mya / 1000).toFixed(2) + "B";
+  if (mya >= 1) return Math.round(mya) + "M";
+  return Math.round(mya * 1000) + "K";
+}
+function ratingFor(pct) {
+  if (pct < 1) return { text: "🔥 Incredible!", c: "#4ade80" };
+  if (pct < 3) return { text: "⭐ Great!", c: "#86efac" };
+  if (pct < 8) return { text: "👍 Not bad!", c: "#fbbf24" };
+  if (pct < 15) return { text: "🤔 Keep trying!", c: "#fb923c" };
+  return { text: "😬 Way off!", c: "#f87171" };
+}
+
+// ===== STATE =====
+let state = {
+  mode: "earth", events: [], idx: 0, guessMya: null, guessRange: null,
+  manualInput: "", result: null, scores: [], phase: "play",
+  initials: "", initialsError: "", leaderboard: [], lbLoading: false,
+  justSubmitted: false, caught: false, caughtName: "", isDragging: false,
+};
+const app = document.getElementById("app");
+
+function maxAge() { return state.mode === "earth" ? EARTH_AGE : UNIVERSE_AGE; }
+
+function startRound(newMode) {
+  if (newMode) state.mode = newMode;
+  const pool = state.mode === "earth" ? EARTH_EVENTS : UNIVERSE_EVENTS;
+  state.events = shuffle(pool).slice(0, ROUND_SIZE);
+  state.idx = 0; state.guessMya = null; state.guessRange = null;
+  state.manualInput = ""; state.result = null; state.scores = [];
+  state.phase = "play"; state.initials = ""; state.initialsError = "";
+  state.justSubmitted = false; state.caught = false;
+  loadLeaderboard(state.mode).then(lb => { state.leaderboard = lb; render(); });
+  render();
+}
+
+// ===== TIMELINE BAR BUILDER =====
+function buildBar(id, label, labelRight, maxMya, ticks, gradient, height, highlight, hlColor) {
+  const myaToPos = mya => 1 - mya / maxMya;
+  const inRange = mya => mya >= 0 && mya <= maxMya;
+  const h = height || 44;
+  let html = `<div class="section"><div class="labels mono"><span>${label}</span><span>${labelRight || "Today"}</span></div>`;
+  html += `<div class="track" id="${id}" style="height:${h}px;border-radius:${h/2}px">`;
+  html += `<div class="track-bg" style="border-radius:${h/2}px;background:${gradient}"></div>`;
+  if (highlight) {
+    const left = myaToPos(highlight) * 100;
+    const w = (highlight / maxMya) * 100;
+    const c = hlColor || "rgba(96,165,250,0.35)";
+    html += `<div class="highlight-box" style="left:${left}%;width:${w}%;border:2px solid ${c};background:${c.replace('0.35','0.07')}"></div>`;
+  }
+  ticks.forEach(t => {
+    html += `<div class="tick-mark" style="left:${(1-t/maxMya)*100}%"><span class="tick-label mono">${fmtShort(t)}</span></div>`;
+  });
+  // Guess dot
+  if (state.guessMya !== null && inRange(state.guessMya)) {
+    const col = state.result ? "#fbbf24" : "#60a5fa";
+    const shad = state.result ? "rgba(251,191,36,0.5)" : "rgba(96,165,250,0.5)";
+    html += `<div class="dot" style="left:${myaToPos(state.guessMya)*100}%;background:${col};box-shadow:0 0 12px ${shad}"></div>`;
+  }
+  // Actual dot
+  if (state.result && inRange(state.result.actualMya)) {
+    html += `<div class="dot" style="left:${myaToPos(state.result.actualMya)*100}%;background:#4ade80;box-shadow:0 0 12px rgba(74,222,128,0.5);z-index:5"></div>`;
+  }
+  // Error line
+  if (state.result && state.guessMya !== null && inRange(state.guessMya) && inRange(state.result.actualMya)) {
+    const p1 = myaToPos(state.guessMya) * 100, p2 = myaToPos(state.result.actualMya) * 100;
+    html += `<div class="err-line" style="left:${Math.min(p1,p2)}%;width:${Math.max(Math.abs(p1-p2),0.3)}%"></div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+// ===== RENDER =====
+function render() {
+  const ev = state.events[state.idx];
+  const ma = maxAge();
+  const era = getEra(state.result ? state.result.guessMya : state.guessMya);
+  const avgPct = state.scores.length > 0 ? state.scores.reduce((s,r) => s + r.pctOff, 0) / state.scores.length : 0;
+
+  const mainTicks = state.mode === "earth" ? [500,1000,1500,2000,2500,3000,3500,4000,4600] : [1000,2000,4000,6000,8000,10000,12000,13800];
+  const z1Ticks = [50,100,150,200,250,300,350,400,450,500];
+  const z2Ticks = [0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3];
+  const mainGrad = state.mode === "earth"
+    ? "linear-gradient(90deg, #5b3a29 0%, #7c5e3c 15%, #6b8e4e 40%, #4a7c59 60%, #2d6a4f 80%, #1b4332 92%, #081c15 100%)"
+    : "linear-gradient(90deg, #1a0533 0%, #2d1b69 12%, #1e3a5f 28%, #5b3a29 50%, #6b8e4e 68%, #2d6a4f 82%, #081c15 100%)";
+
+  // ===== RESULTS / SUBMIT PHASE =====
+  if (state.phase === "submit") {
+    const sorted = [...state.scores].sort((a,b) => a.pctOff - b.pctOff);
+    let h = `<div class="header"><h1 class="title">${state.mode === "earth" ? "🌍 Earth" : "✨ Universe"} History Timeline</h1><p class="sub">Round Complete!</p></div>`;
+    h += `<div class="card"><div style="text-align:center"><div class="big-num mono">${avgPct.toFixed(1)}%</div><div class="big-label">Average Error</div></div>`;
+    h += `<div style="width:100%;display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto">`;
+    sorted.forEach((r,i) => {
+      h += `<div class="row"><span class="rank mono">#${i+1}</span><span style="flex:1;color:rgba(255,255,255,0.75);font-size:12px">${r.event}</span><span class="mono" style="font-weight:700;font-size:11px;color:${ratingFor(r.pctOff).c}">${r.pctOff.toFixed(1)}%</span></div>`;
+    });
+    h += `</div>`;
+    // Initials entry
+    h += `<div style="width:100%;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;text-align:center">`;
+    h += `<div style="font-size:15px;font-weight:700;margin-bottom:10px">🏆 Enter Your Initials for the Leaderboard</div>`;
+    h += `<div style="display:flex;justify-content:center;align-items:center;gap:12px">`;
+    h += `<div style="position:relative"><input class="initials-input" id="initials" maxlength="3" value="${state.initials}" placeholder="ABC">`;
+    if (state.initialsError) h += `<div style="position:absolute;bottom:-20px;left:0;right:0;font-size:10px;color:#f87171;text-align:center">${state.initialsError}</div>`;
+    h += `</div><button class="btn" id="submitScore">${state.lbLoading ? "Saving..." : "Submit Score"}</button></div>`;
+    h += `<button class="link-btn" id="skipLb" style="margin-top:16px">Skip — view leaderboard</button>`;
+    h += `</div></div>`;
+    // Caught overlay
+    if (state.caught) {
+      h += `<div class="caught-overlay"><div class="viewfinder"><div class="scan-line"></div><div class="crosshair-h"></div><div class="crosshair-v"></div><div style="font-size:60px;opacity:0.9">📸</div></div>`;
+      h += `<div class="rec-label mono">● REC</div>`;
+      h += `<div style="margin-top:20px;font-size:18px;font-weight:800;text-align:center;max-width:340px;padding:0 20px">📷 Photo captured.</div>`;
+      h += `<div style="margin-top:8px;font-size:15px;color:rgba(255,255,255,0.85);text-align:center;max-width:340px;line-height:1.5">Your picture and name <span style="color:#f87171;font-weight:700">"${state.caughtName}"</span> are recorded and are being sent to <span style="color:#f87171;font-weight:700">Mr. Ward</span>.</div>`;
+      h += `<div style="margin-top:24px;font-size:11px;color:rgba(255,255,255,0.35)" class="mono">Returning in a moment...</div></div>`;
+    }
+    app.innerHTML = h;
+    bindSubmitEvents();
+    return;
+  }
+
+  // ===== LEADERBOARD PHASE =====
+  if (state.phase === "leaderboard") {
+    let h = `<div class="header"><h1 class="title">🏆 Leaderboard — ${state.mode === "earth" ? "Earth" : "Universe"} Mode</h1><p class="sub">Lowest average error wins!</p></div>`;
+    h += `<div class="card">`;
+    if (state.leaderboard.length === 0) {
+      h += `<div style="color:rgba(255,255,255,0.5);padding:20px;text-align:center">No scores yet — be the first!</div>`;
+    } else {
+      h += `<div style="width:100%;display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto">`;
+      state.leaderboard.forEach((entry, i) => {
+        const isNew = state.justSubmitted && entry.initials === state.initials && Math.abs(entry.avg - Math.round(avgPct * 100) / 100) < 0.01;
+        const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i+1}`;
+        h += `<div class="row ${isNew ? 'row-highlight' : ''}">`;
+        h += `<span class="rank mono" style="font-size:13px">${medal}</span>`;
+        h += `<span class="mono" style="font-weight:800;font-size:16px;color:${isNew ? '#4ade80' : '#e8e4dc'};letter-spacing:3px;width:60px">${entry.initials}</span>`;
+        h += `<span style="flex:1"></span>`;
+        h += `<span class="mono" style="font-weight:700;font-size:14px;color:${ratingFor(entry.avg).c}">${entry.avg.toFixed(1)}%</span>`;
+        h += `<span style="font-size:10px;color:rgba(255,255,255,0.3);margin-left:8px;width:65px;text-align:right">${entry.date || ""}</span>`;
+        h += `</div>`;
+      });
+      h += `</div>`;
+    }
+    h += `<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px">`;
+    h += `<button class="btn" id="playAgain">🔄 Play Again</button>`;
+    h += `<button class="btn2" id="switchMode">${state.mode === "earth" ? "✨ Try Universe" : "🌍 Try Earth"}</button>`;
+    h += `</div></div>`;
+    app.innerHTML = h;
+    document.getElementById("playAgain").onclick = () => startRound();
+    document.getElementById("switchMode").onclick = () => startRound(state.mode === "earth" ? "universe" : "earth");
+    return;
+  }
+
+  // ===== GAME PLAY PHASE =====
+  let h = `<div class="header"><h1 class="title">${state.mode === "earth" ? "🌍 Earth" : "✨ Universe"} History Timeline</h1>`;
+  h += `<p class="sub">Drag a marker or type a number — how close can you get?</p>`;
+  h += `<div class="progress mono">Event ${state.idx + 1} of ${ROUND_SIZE} &nbsp;|&nbsp; Avg error: ${avgPct.toFixed(1)}%</div></div>`;
+
+  // Toggle
+  h += `<div class="toggle"><button class="${state.mode === 'earth' ? 'tog-on' : 'tog-off'}" id="togEarth">🌍 Earth</button><button class="${state.mode === 'universe' ? 'tog-on' : 'tog-off'}" id="togUni">✨ Universe</button></div>`;
+
+  // Event + Globe
+  h += `<div style="display:flex;gap:12px;align-items:stretch;max-width:720px;width:100%;margin-bottom:16px;flex-wrap:wrap">`;
+  h += `<div class="event-card" style="flex:1 1 250px"><span class="event-emoji">${ev.emoji}</span><span class="event-name">${ev.name}</span></div>`;
+  h += `<div class="earth-card"><div id="globe">${globeSVG(era)}</div><div style="min-width:0"><div class="era-name">${era.name}</div><div class="era-desc">${era.desc}</div></div></div>`;
+  h += `</div>`;
+
+  // Bars
+  const mainLabel = state.mode === "earth" ? "Formation of the Earth" : "The Big Bang";
+  h += buildBar("mainBar", mainLabel, "Today", ma, mainTicks, mainGrad, 44, ZOOM1, "rgba(96,165,250,0.35)");
+  h += buildBar("zoom1Bar", "🔍 Last 500 Million Years", "Today", ZOOM1, z1Ticks,
+    "linear-gradient(90deg, #4a7c59 0%, #2d6a4f 25%, #1b4332 55%, #134e2a 75%, #081c15 100%)", 38, ZOOM2, "rgba(250,200,60,0.35)");
+  h += buildBar("zoom2Bar", "🔬 Last 3 Million Years (human evolution)", "Today", ZOOM2, z2Ticks,
+    "linear-gradient(90deg, #1b4332 0%, #134e2a 30%, #0d3320 60%, #081c15 100%)", 36, null, null);
+
+  // Controls
+  h += `<div class="controls"><div style="display:flex;flex-direction:column;gap:4px">`;
+  h += `<label style="font-size:11px;color:rgba(255,255,255,0.5)">Or type millions of years ago:</label>`;
+  h += `<input type="number" class="num-input" id="manualInput" min="0" max="${ma}" step="any" value="${state.manualInput}" placeholder="e.g. 500" ${state.result ? 'disabled' : ''}>`;
+  h += `</div>`;
+  if (!state.result) {
+    h += `<button class="btn" id="submitGuess" ${state.guessMya === null && !state.manualInput.trim() ? 'disabled' : ''}>Submit Guess</button>`;
+  } else {
+    h += `<button class="btn" id="nextEvent">${state.idx + 1 >= ROUND_SIZE ? "See Results →" : "Next Event →"}</button>`;
+  }
+  h += `</div>`;
+
+  // Feedback
+  if (state.result) {
+    const r = state.result, rat = ratingFor(r.pctOff);
+    h += `<div class="feedback" style="border-color:${rat.c}">`;
+    h += `<div style="font-size:24px">${rat.text}</div>`;
+    h += `<div style="display:flex;justify-content:center;gap:36px;margin:10px 0">`;
+    h += `<div style="text-align:center"><div class="fb-num mono">${fmtMya(r.diff)}</div><div class="fb-lbl">years off</div></div>`;
+    h += `<div style="text-align:center"><div class="fb-num mono" style="color:${rat.c}">${r.pctOff.toFixed(1)}%</div><div class="fb-lbl">of ${r.rangeName} range</div></div>`;
+    h += `</div>`;
+    h += `<div style="font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5">You guessed <strong>${fmtMya(r.guessMya)}</strong> years ago — it was actually <strong>${fmtMya(r.actualMya)}</strong> years ago</div>`;
+    h += `</div>`;
+  }
+
+  app.innerHTML = h;
+  bindPlayEvents();
+}
+
+// ===== EVENT BINDING =====
+function bindPlayEvents() {
+  const bars = [
+    { id: "mainBar", range: maxAge() },
+    { id: "zoom1Bar", range: ZOOM1 },
+    { id: "zoom2Bar", range: ZOOM2 },
+  ];
+  bars.forEach(({ id, range }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let dragging = false;
+    el.addEventListener("pointerdown", e => {
+      if (state.result) return;
+      dragging = true;
+      state.isDragging = true;
+      const rect = el.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      state.guessMya = (1 - pos) * range;
+      state.guessRange = range;
+      el.setPointerCapture(e.pointerId);
+      render();
+    });
+    el.addEventListener("pointermove", e => {
+      if (!dragging || state.result) return;
+      const rect = el.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      state.guessMya = (1 - pos) * range;
+      state.guessRange = range;
+      render();
+    });
+    el.addEventListener("pointerup", () => { dragging = false; state.isDragging = false; });
+  });
+
+  const inp = document.getElementById("manualInput");
+  if (inp) inp.addEventListener("input", () => {
+    state.manualInput = inp.value;
+    if (inp.value.trim()) {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v) && v >= 0) state.guessMya = Math.min(v, maxAge());
+    }
+    render();
+  });
+
+  const sg = document.getElementById("submitGuess");
+  if (sg) sg.onclick = doSubmitGuess;
+  const ne = document.getElementById("nextEvent");
+  if (ne) ne.onclick = doNextEvent;
+  const te = document.getElementById("togEarth");
+  if (te) te.onclick = () => startRound("earth");
+  const tu = document.getElementById("togUni");
+  if (tu) tu.onclick = () => startRound("universe");
+}
+
+function bindSubmitEvents() {
+  const inp = document.getElementById("initials");
+  if (inp) {
+    inp.addEventListener("input", () => {
+      state.initials = inp.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+      inp.value = state.initials;
+      state.initialsError = "";
+    });
+  }
+  const btn = document.getElementById("submitScore");
+  if (btn) btn.onclick = doSubmitScore;
+  const skip = document.getElementById("skipLb");
+  if (skip) skip.onclick = async () => {
+    state.lbLoading = true; render();
+    state.leaderboard = await loadLeaderboard(state.mode);
+    state.lbLoading = false; state.phase = "leaderboard"; render();
+  };
+}
+
+function doSubmitGuess() {
+  const ev = state.events[state.idx];
+  let g = state.guessMya;
+  let range = state.guessRange || maxAge();
+  if (state.manualInput.trim()) {
+    g = parseFloat(state.manualInput);
+    if (isNaN(g) || g < 0) return;
+    state.guessMya = g;
+    if (g <= ZOOM2) range = ZOOM2;
+    else if (g <= ZOOM1) range = ZOOM1;
+    else range = maxAge();
+    state.guessRange = range;
+  }
+  if (g === null) return;
+  const diff = Math.abs(g - ev.mya);
+  const pctOff = (diff / range) * 100;
+  const rangeName = range <= ZOOM2 ? "3M bar" : range <= ZOOM1 ? "500M bar" : "full bar";
+  state.result = { guessMya: g, actualMya: ev.mya, diff, pctOff, range, rangeName };
+  state.scores.push({ event: ev.name, diff, pctOff });
+  render();
+}
+
+function doNextEvent() {
+  if (state.idx + 1 >= ROUND_SIZE) {
+    state.phase = "submit";
+  } else {
+    state.idx++;
+    state.guessMya = null; state.guessRange = null;
+    state.manualInput = ""; state.result = null;
+  }
+  render();
+}
+
+async function doSubmitScore() {
+  if (state.initials.length !== 3) { state.initialsError = "Enter exactly 3 letters"; render(); return; }
+  if (BLOCKED_WORDS.has(state.initials)) {
+    state.caughtName = state.initials; state.caught = true; state.initials = "";
+    render();
+    setTimeout(() => { state.caught = false; render(); }, 6000);
+    return;
+  }
+  state.lbLoading = true; render();
+  const avgPct = state.scores.reduce((s, r) => s + r.pctOff, 0) / state.scores.length;
+  const entry = { initials: state.initials, avg: Math.round(avgPct * 100) / 100, date: new Date().toLocaleDateString() };
+  state.leaderboard = await saveToLeaderboard(state.mode, entry);
+  state.justSubmitted = true; state.lbLoading = false;
+  state.phase = "leaderboard"; render();
+}
+
+// ===== START =====
+startRound();
+</script>
+</body>
+</html>
